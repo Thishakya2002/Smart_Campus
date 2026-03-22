@@ -1,10 +1,9 @@
 package com.smartcampus;
 
-/**
- * Hello world!
- */
-public class App {
-    public static void main(String[] args) {
-        System.out.println("Hello World!");
+import org.glassfish.jersey.server.ResourceConfig;
+
+public class App extends ResourceConfig {
+    public App() {
+        packages("com.smartcampus");
     }
 }
