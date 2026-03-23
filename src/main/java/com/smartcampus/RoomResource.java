@@ -8,7 +8,11 @@ package com.smartcampus;
  *
  * @author tk
  */
+import com.smartcampus.exceptions.BadRequestException;
+import com.smartcampus.exceptions.ConflictException;
+import com.smartcampus.exceptions.ResourceNotFoundException;
 import com.smartcampus.model.Room;
+
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -27,10 +31,16 @@ public class RoomResource {
 
     @POST
     public Response createRoom(Room room) {
-        if (room == null || room.getId() == null || room.getId().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"message\":\"Room id is required\"}")
-                    .build();
+        if (room == null) {
+            throw new BadRequestException("Room payload is required.");
+        }
+
+        if (room.getId() == null || room.getId().trim().isEmpty()) {
+            throw new BadRequestException("Room id is required.");
+        }
+
+        if (room.getName() == null || room.getName().trim().isEmpty()) {
+            throw new BadRequestException("Room name is required.");
         }
 
         if (room.getSensorIds() == null) {
@@ -50,9 +60,7 @@ public class RoomResource {
         Room room = DataStore.rooms.get(roomId);
 
         if (room == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("{\"message\":\"Room not found\"}")
-                    .build();
+            throw new ResourceNotFoundException("Room with id '" + roomId + "' not found.");
         }
 
         return Response.ok(room).build();
@@ -64,18 +72,15 @@ public class RoomResource {
         Room room = DataStore.rooms.get(roomId);
 
         if (room == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("{\"message\":\"Room not found\"}")
-                    .build();
+            throw new ResourceNotFoundException("Room with id '" + roomId + "' not found.");
         }
 
         if (room.getSensorIds() != null && !room.getSensorIds().isEmpty()) {
-            return Response.status(Response.Status.CONFLICT)
-                    .entity("{\"message\":\"Room cannot be deleted because it still has sensors assigned\"}")
-                    .build();
+            throw new ConflictException("Room cannot be deleted because it still has sensors assigned.");
         }
 
         DataStore.rooms.remove(roomId);
+
         return Response.ok("{\"message\":\"Room deleted successfully\"}").build();
     }
 }

@@ -8,6 +8,8 @@ package com.smartcampus;
  *
  * @author tk
  */
+import com.smartcampus.exceptions.BadRequestException;
+import com.smartcampus.exceptions.LinkedResourceNotFoundException;
 import com.smartcampus.model.Room;
 import com.smartcampus.model.Sensor;
 
@@ -26,7 +28,7 @@ public class SensorResource {
     public List<Sensor> getAllSensors(@QueryParam("type") String type) {
         List<Sensor> sensors = new ArrayList<>(DataStore.sensors.values());
 
-        if (type == null || type.isEmpty()) {
+        if (type == null || type.trim().isEmpty()) {
             return sensors;
         }
 
@@ -36,28 +38,29 @@ public class SensorResource {
                 filteredSensors.add(sensor);
             }
         }
+
         return filteredSensors;
     }
 
     @POST
     public Response createSensor(Sensor sensor) {
-        if (sensor == null || sensor.getId() == null || sensor.getId().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"message\":\"Sensor id is required\"}")
-                    .build();
+        if (sensor == null) {
+            throw new BadRequestException("Sensor payload is required.");
         }
 
-        if (sensor.getRoomId() == null || sensor.getRoomId().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"message\":\"roomId is required\"}")
-                    .build();
+        if (sensor.getId() == null || sensor.getId().trim().isEmpty()) {
+            throw new BadRequestException("Sensor id is required.");
+        }
+
+        if (sensor.getRoomId() == null || sensor.getRoomId().trim().isEmpty()) {
+            throw new BadRequestException("roomId is required.");
         }
 
         Room room = DataStore.rooms.get(sensor.getRoomId());
         if (room == null) {
-            return Response.status(422)
-                    .entity("{\"message\":\"Referenced room does not exist\"}")
-                    .build();
+            throw new LinkedResourceNotFoundException(
+                    "Referenced room with id '" + sensor.getRoomId() + "' does not exist."
+            );
         }
 
         DataStore.sensors.put(sensor.getId(), sensor);
@@ -69,5 +72,10 @@ public class SensorResource {
         return Response.status(Response.Status.CREATED)
                 .entity(sensor)
                 .build();
+    }
+
+    @Path("/{sensorId}/readings")
+    public SensorReadingResource getSensorReadingResource(@PathParam("sensorId") String sensorId) {
+        return new SensorReadingResource(sensorId);
     }
 }
