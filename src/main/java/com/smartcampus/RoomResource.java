@@ -12,6 +12,7 @@ import com.smartcampus.exceptions.BadRequestException;
 import com.smartcampus.exceptions.ConflictException;
 import com.smartcampus.exceptions.ResourceNotFoundException;
 import com.smartcampus.model.Room;
+import com.smartcampus.model.Sensor;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -82,5 +83,86 @@ public class RoomResource {
         DataStore.rooms.remove(roomId);
 
         return Response.ok("{\"message\":\"Room deleted successfully\"}").build();
+    }
+
+    @GET
+    @Path("/{roomId}/sensors")
+    public Response getSensorsByRoom(@PathParam("roomId") String roomId) {
+
+        Room room = DataStore.rooms.get(roomId);
+
+        if (room == null) {
+            throw new ResourceNotFoundException("Room with id '" + roomId + "' not found.");
+        }
+
+        List<Sensor> sensors = new ArrayList<>();
+
+        if (room.getSensorIds() != null) {
+            for (String sensorId : room.getSensorIds()) {
+                Sensor sensor = DataStore.sensors.get(sensorId);
+                if (sensor != null) {
+                    sensors.add(sensor);
+                }
+            }
+        }
+
+        return Response.ok(sensors).build();
+    }
+
+    @POST
+    @Path("/{roomId}/sensors")
+    public Response addSensorToRoom(@PathParam("roomId") String roomId, Sensor sensor) {
+
+        Room room = DataStore.rooms.get(roomId);
+
+        if (room == null) {
+            throw new ResourceNotFoundException("Room with id '" + roomId + "' not found.");
+        }
+
+        if (sensor == null) {
+            throw new BadRequestException("Sensor payload is required.");
+        }
+
+        if (sensor.getId() == null || sensor.getId().trim().isEmpty()) {
+            throw new BadRequestException("Sensor id is required.");
+        }
+
+        sensor.setRoomId(roomId);
+
+        DataStore.sensors.put(sensor.getId(), sensor);
+
+        if (room.getSensorIds() == null) {
+            room.setSensorIds(new ArrayList<>());
+        }
+
+        if (!room.getSensorIds().contains(sensor.getId())) {
+            room.getSensorIds().add(sensor.getId());
+        }
+
+        return Response.status(Response.Status.CREATED)
+                .entity(sensor)
+                .build();
+    }
+
+    @DELETE
+    @Path("/{roomId}/sensors/{sensorId}")
+    public Response removeSensorFromRoom(
+            @PathParam("roomId") String roomId,
+            @PathParam("sensorId") String sensorId) {
+
+        Room room = DataStore.rooms.get(roomId);
+
+        if (room == null) {
+            throw new ResourceNotFoundException("Room with id '" + roomId + "' not found.");
+        }
+
+        if (room.getSensorIds() == null || !room.getSensorIds().contains(sensorId)) {
+            throw new ResourceNotFoundException("Sensor with id '" + sensorId + "' not found in this room.");
+        }
+
+        room.getSensorIds().remove(sensorId);
+        DataStore.sensors.remove(sensorId);
+
+        return Response.ok("{\"message\":\"Sensor removed from room\"}").build();
     }
 }

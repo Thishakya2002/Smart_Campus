@@ -56,6 +56,10 @@ public class SensorResource {
             throw new BadRequestException("roomId is required.");
         }
 
+        if (DataStore.sensors.containsKey(sensor.getId())) {
+            throw new BadRequestException("Sensor with this id already exists.");
+        }
+
         Room room = DataStore.rooms.get(sensor.getRoomId());
         if (room == null) {
             throw new LinkedResourceNotFoundException(
@@ -65,7 +69,11 @@ public class SensorResource {
 
         DataStore.sensors.put(sensor.getId(), sensor);
 
-        if (room.getSensorIds() != null && !room.getSensorIds().contains(sensor.getId())) {
+        if (room.getSensorIds() == null) {
+            room.setSensorIds(new ArrayList<>());
+        }
+
+        if (!room.getSensorIds().contains(sensor.getId())) {
             room.getSensorIds().add(sensor.getId());
         }
 
