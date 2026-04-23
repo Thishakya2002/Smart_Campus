@@ -24,6 +24,6 @@ public class Main {
 
     public static void main(String[] args) {
         startServer();
-        System.out.println("Server started at http://localhost:8080/api/");
+        System.out.println("Server started at " + BASE_URI);
     }
 }
